@@ -53,4 +53,18 @@ describe('POST /api/auth/login', () => {
     expect(response.status).toBe(401);
     expect(body).toEqual({ error: 'invalid email or password' });
   });
+
+  it('returns 400 with invalid request body error on malformed JSON', async () => {
+    const request = new NextRequest('http://localhost/api/auth/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: 'not valid json{',
+    });
+
+    const response = await POST(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body).toEqual({ error: 'invalid request body' });
+  });
 });
