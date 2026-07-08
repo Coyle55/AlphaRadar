@@ -482,7 +482,7 @@ git commit -m "feat: add Postgres access layer for tokens, snapshots, scores"
 **Interfaces:**
 - Produces:
   - `DexScreenerTokenProfile { chainId: string; tokenAddress: string }`
-  - `DexScreenerPair { chainId: string; pairAddress: string; baseToken: { address: string; name: string; symbol: string }; priceUsd: string; priceChange: { m5: number; h1: number; h6: number; h24: number }; liquidity: { usd: number; base: number; quote: number }; volume: { h24: number; h6: number; h1: number; m5: number }; txns: { m5: {buys:number;sells:number}; h1: {buys:number;sells:number}; h6: {buys:number;sells:number}; h24: {buys:number;sells:number} }; marketCap: number; fdv: number; pairCreatedAt: number }`
+  - `DexScreenerPair { chainId: string; pairAddress: string; baseToken: { address: string; name: string; symbol: string }; priceUsd: string; priceChange: { m5: number; h1: number; h6: number; h24: number }; liquidity: { usd: number; base: number; quote: number }; volume: { h24: number; h6: number; h1: number; m5: number }; txns: { m5: {buys:number;sells:number}; h1: {buys:number;sells:number}; h6: {buys:number;sells:number}; h24: {buys:number;sells:number} }; marketCap?: number; fdv?: number; pairCreatedAt: number }` (`marketCap`/`fdv` fixed to optional post-review — live API confirmed DexScreener omits `marketCap` for some very fresh pairs; see Task 5's filter, which is the designated place this gets enforced as "skip, don't default")
   - `fetchLatestTokenProfiles(): Promise<DexScreenerTokenProfile[]>` — calls `token-profiles/latest/v1`, filters to `chainId === 'solana'`
   - `fetchTokenPairs(tokenAddress: string): Promise<DexScreenerPair[]>` — calls `token-pairs/v1/solana/{tokenAddress}`
 
@@ -667,7 +667,7 @@ git commit -m "feat: add DexScreener client for token profiles and pairs"
 - Test: `src/lib/scan/filter.test.ts`
 
 **Interfaces:**
-- Consumes: `DexScreenerPair` (Task 4)
+- Consumes: `DexScreenerPair` (Task 4) — note `marketCap` and `fdv` are typed `number | undefined` (fixed post-Task-4-review: DexScreener omits `marketCap` for some very fresh pairs). This filter is the pipeline's designated place to enforce the plan's global constraint "skip a token if a required field is missing, never substitute a default" — a pair with a missing/non-finite `marketCap` must fail the filter, since Task 7's scoring engine treats `marketCap` as required input and assumes the filter already excluded anything without it.
 - Produces: `passesHardFilter(pair: DexScreenerPair, now: Date, thresholds?: FilterThresholds): boolean`, `DEFAULT_FILTER_THRESHOLDS: FilterThresholds`, `FilterThresholds { minLiquidityUsd: number; minVolume1hUsd: number; minAgeMinutes: number }`
 
 - [ ] **Step 1: Write the failing test**
@@ -728,6 +728,16 @@ describe('passesHardFilter', () => {
     expect(passesHardFilter(pair, now, { minLiquidityUsd: 20000, minVolume1hUsd: 0, minAgeMinutes: 0 })).toBe(false);
     expect(passesHardFilter(pair, now, { minLiquidityUsd: 10000, minVolume1hUsd: 0, minAgeMinutes: 0 })).toBe(true);
   });
+
+  it('rejects a pair with a missing marketCap', () => {
+    const pair = makePair({ marketCap: undefined });
+    expect(passesHardFilter(pair, now)).toBe(false);
+  });
+
+  it('rejects a pair with a non-finite marketCap', () => {
+    const pair = makePair({ marketCap: NaN });
+    expect(passesHardFilter(pair, now)).toBe(false);
+  });
 });
 ```
 
@@ -762,6 +772,7 @@ export function passesHardFilter(
   now: Date,
   thresholds: FilterThresholds = DEFAULT_FILTER_THRESHOLDS
 ): boolean {
+  if (!Number.isFinite(pair.marketCap)) return false;
   const ageMinutes = (now.getTime() - pair.pairCreatedAt) / 60_000;
   if (ageMinutes < thresholds.minAgeMinutes) return false;
   if (pair.liquidity.usd < thresholds.minLiquidityUsd) return false;
@@ -770,13 +781,15 @@ export function passesHardFilter(
 }
 ```
 
+`Number.isFinite(undefined)` is `false`, so this one check covers both the missing-field and non-finite (`NaN`/`Infinity`) cases without a separate null check.
+
 - [ ] **Step 4: Run the tests to verify they pass**
 
 ```bash
 npm test -- filter.test
 ```
 
-Expected: PASS, all 5 tests.
+Expected: PASS, all 7 tests.
 
 - [ ] **Step 5: Commit**
 
