@@ -5,6 +5,12 @@ import { passesHardFilter } from '@/lib/scan/filter';
 import { mapPairToSnapshot } from '@/lib/scan/mapSnapshot';
 import { scoreToken } from '@/lib/scoring/score';
 import { upsertToken, insertSnapshot, insertScore } from '@/lib/db/tokens';
+import type { ScoreBreakdown } from '@/lib/db/tokens';
+import { getPriorSnapshot, getLocalHighPrice } from '@/lib/scan/history';
+import { evaluateDiscoveryAlerts } from '@/lib/alerts/rules';
+import { wasRecentlyAlerted, insertAlert, markTelegramResult, ALERT_COOLDOWN_MINUTES } from '@/lib/db/alerts';
+import { formatAlertMessage } from '@/lib/alerts/format';
+import { sendTelegramMessage } from '@/lib/telegram/client';
 
 function selectPair(pairs: DexScreenerPair[], tokenAddress: string): DexScreenerPair | undefined {
   const matching = pairs.filter((p) => p.baseToken.address === tokenAddress);
@@ -13,6 +19,33 @@ function selectPair(pairs: DexScreenerPair[], tokenAddress: string): DexScreener
     if (!best || p.liquidity.usd > best.liquidity.usd) return p;
     return best;
   }, undefined);
+}
+
+async function evaluateAndDeliverAlerts(tokenId: string, pair: DexScreenerPair, score: ScoreBreakdown): Promise<number> {
+  const [priorSnapshot, localHighPrice] = await Promise.all([
+    getPriorSnapshot(tokenId),
+    getLocalHighPrice(tokenId),
+  ]);
+
+  const firedTypes = evaluateDiscoveryAlerts({ pair, score, priorSnapshot, localHighPrice });
+  let delivered = 0;
+
+  for (const alertType of firedTypes) {
+    const inCooldown = await wasRecentlyAlerted(tokenId, alertType, ALERT_COOLDOWN_MINUTES);
+    if (inCooldown) continue;
+
+    const alert = await insertAlert({ tokenId, alertType, payload: { score, pair } });
+    try {
+      await sendTelegramMessage(formatAlertMessage(alertType, pair));
+      await markTelegramResult(alert.id, true, null);
+      delivered++;
+    } catch (err) {
+      console.error(`alert: telegram send failed for ${alertType} on ${pair.pairAddress}`, err);
+      await markTelegramResult(alert.id, false, (err as Error).message);
+    }
+  }
+
+  return delivered;
 }
 
 export async function POST(request: NextRequest) {
@@ -37,6 +70,7 @@ export async function POST(request: NextRequest) {
   const now = new Date();
   let scored = 0;
   let skipped = 0;
+  let alertsFired = 0;
 
   for (const profile of profiles) {
     try {
@@ -61,11 +95,17 @@ export async function POST(request: NextRequest) {
       const score = scoreToken({ pair, initialLiquidityUsd: token.initialLiquidityUsd });
       await insertScore(snapshotId, score);
       scored++;
+
+      try {
+        alertsFired += await evaluateAndDeliverAlerts(token.id, pair, score);
+      } catch (err) {
+        console.error(`alert: evaluation failed for ${pair.pairAddress}`, err);
+      }
     } catch (err) {
       console.error(`scan: failed to process token ${profile.tokenAddress}`, err);
       skipped++;
     }
   }
 
-  return NextResponse.json({ scored, skipped, total: profiles.length });
+  return NextResponse.json({ scored, skipped, total: profiles.length, alertsFired });
 }
