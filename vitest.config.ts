@@ -7,6 +7,13 @@ export default defineConfig({
     include: ['src/**/*.test.ts'],
     setupFiles: ['./vitest.setup.ts'],
     passWithNoTests: true,
+    // DB-backed test files (tokens.test.ts, route.test.ts) share one real
+    // Postgres instance and each truncate the same tables in beforeEach.
+    // Running test files in parallel races those truncations against
+    // concurrent inserts in other files, causing intermittent FK violations
+    // and row-count mismatches. Force file-level sequencing so DB state
+    // stays consistent within each file's test run.
+    fileParallelism: false,
   },
   resolve: {
     alias: {
