@@ -9,6 +9,11 @@ export function mapPairToSnapshot(pair: DexScreenerPair): TokenSnapshotInput {
       `mapPairToSnapshot called on a pair with no usable marketCap or fdv (${pair.pairAddress}) — this pair should have been rejected by passesHardFilter first`
     );
   }
+  if (!pair.liquidity || !Number.isFinite(pair.liquidity.usd)) {
+    throw new Error(
+      `mapPairToSnapshot called on a pair with no liquidity data (${pair.pairAddress}) — this pair should have been rejected by passesHardFilter first`
+    );
+  }
   return {
     priceUsd: parseFloat(pair.priceUsd),
     liquidityUsd: pair.liquidity.usd,

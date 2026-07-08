@@ -72,4 +72,9 @@ describe('passesHardFilter', () => {
     const pair = makePair({ marketCap: NaN });
     expect(passesHardFilter(pair, now)).toBe(true);
   });
+
+  it('rejects a pair with a missing liquidity object', () => {
+    const pair = makePair({ liquidity: undefined });
+    expect(passesHardFilter(pair, now)).toBe(false);
+  });
 });

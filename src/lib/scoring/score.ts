@@ -18,6 +18,11 @@ export function scoreToken({ pair, initialLiquidityUsd }: ScoreInput): ScoreBrea
       `scoreToken called on a pair with no usable marketCap or fdv (${pair.pairAddress}) — this pair should have been rejected by passesHardFilter first`
     );
   }
+  if (!pair.liquidity || !Number.isFinite(pair.liquidity.usd)) {
+    throw new Error(
+      `scoreToken called on a pair with no liquidity data (${pair.pairAddress}) — this pair should have been rejected by passesHardFilter first`
+    );
+  }
   const marketCapValue = marketCap as number;
 
   const avgHourlyVolume6h = pair.volume.h6 / 6;

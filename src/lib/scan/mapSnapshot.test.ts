@@ -79,4 +79,27 @@ describe('mapPairToSnapshot', () => {
 
     expect(() => mapPairToSnapshot(pair)).toThrow(/no usable marketCap or fdv/);
   });
+
+  it('throws if liquidity is missing (should never happen post-filter, but guards the invariant)', () => {
+    const pair: DexScreenerPair = {
+      chainId: 'solana',
+      pairAddress: 'pair-4',
+      baseToken: { address: 'mint-4', name: 'Test', symbol: 'TST' },
+      priceUsd: '0.0015',
+      priceChange: { m5: 1, h1: 5, h6: 10, h24: 20 },
+      liquidity: undefined,
+      volume: { h24: 200000, h6: 60000, h1: 15000, m5: 2000 },
+      txns: {
+        m5: { buys: 6, sells: 2 },
+        h1: { buys: 60, sells: 25 },
+        h6: { buys: 250, sells: 100 },
+        h24: { buys: 600, sells: 350 },
+      },
+      marketCap: 900000,
+      fdv: 950000,
+      pairCreatedAt: Date.now() - 30 * 60 * 1000,
+    };
+
+    expect(() => mapPairToSnapshot(pair)).toThrow(/no liquidity data/);
+  });
 });

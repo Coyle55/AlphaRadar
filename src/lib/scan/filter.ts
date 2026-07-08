@@ -24,6 +24,7 @@ export function passesHardFilter(
   thresholds: FilterThresholds = DEFAULT_FILTER_THRESHOLDS
 ): boolean {
   if (!Number.isFinite(getEffectiveMarketCap(pair))) return false;
+  if (!pair.liquidity || !Number.isFinite(pair.liquidity.usd)) return false;
   const ageMinutes = (now.getTime() - pair.pairCreatedAt) / 60_000;
   if (ageMinutes < thresholds.minAgeMinutes) return false;
   if (pair.liquidity.usd < thresholds.minLiquidityUsd) return false;

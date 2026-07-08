@@ -111,4 +111,9 @@ describe('scoreToken', () => {
     const result = scoreToken({ pair, initialLiquidityUsd: 50000 });
     expect(result.factors.marketCapBand).toBe(10);
   });
+
+  it('throws if liquidity is missing (should never happen post-filter, but guards the invariant)', () => {
+    const pair = makePair({ liquidity: undefined });
+    expect(() => scoreToken({ pair, initialLiquidityUsd: 50000 })).toThrow(/no liquidity data/);
+  });
 });
