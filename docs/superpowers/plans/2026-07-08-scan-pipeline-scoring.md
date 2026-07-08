@@ -807,7 +807,7 @@ git commit -m "feat: add hard filter for scan candidates"
 - Test: `src/lib/scan/mapSnapshot.test.ts`
 
 **Interfaces:**
-- Consumes: `DexScreenerPair` (Task 4)
+- Consumes: `DexScreenerPair` (Task 4) — `marketCap` is typed `number | undefined`, but this function's contract is that it is only ever called on a pair that already passed Task 5's `passesHardFilter`, which guarantees `Number.isFinite(pair.marketCap)`. So the implementation asserts non-null on `pair.marketCap` rather than re-checking it — re-validating here would duplicate the filter's job and this function has no way to "skip" a token itself (it always returns a value).
 - Produces: `mapPairToSnapshot(pair: DexScreenerPair): TokenSnapshotInput`, re-exporting/matching the `TokenSnapshotInput` shape defined in Task 3 (`src/lib/db/tokens.ts`) exactly — `{ priceUsd, liquidityUsd, volume1hUsd, volume24hUsd, buys1h, sells1h, marketCapUsd }`.
 
 - [ ] **Step 1: Write the failing test**
@@ -849,6 +849,29 @@ describe('mapPairToSnapshot', () => {
       marketCapUsd: 900000,
     });
   });
+
+  it('throws if marketCap is missing (should never happen post-filter, but guards the invariant)', () => {
+    const pair: DexScreenerPair = {
+      chainId: 'solana',
+      pairAddress: 'pair-2',
+      baseToken: { address: 'mint-2', name: 'Test', symbol: 'TST' },
+      priceUsd: '0.0015',
+      priceChange: { m5: 1, h1: 5, h6: 10, h24: 20 },
+      liquidity: { usd: 42000, base: 1000, quote: 1000 },
+      volume: { h24: 200000, h6: 60000, h1: 15000, m5: 2000 },
+      txns: {
+        m5: { buys: 6, sells: 2 },
+        h1: { buys: 60, sells: 25 },
+        h6: { buys: 250, sells: 100 },
+        h24: { buys: 600, sells: 350 },
+      },
+      marketCap: undefined,
+      fdv: 950000,
+      pairCreatedAt: Date.now() - 30 * 60 * 1000,
+    };
+
+    expect(() => mapPairToSnapshot(pair)).toThrow(/non-finite marketCap/);
+  });
 });
 ```
 
@@ -868,6 +891,11 @@ import type { DexScreenerPair } from '../dexscreener/types';
 import type { TokenSnapshotInput } from '../db/tokens';
 
 export function mapPairToSnapshot(pair: DexScreenerPair): TokenSnapshotInput {
+  if (!Number.isFinite(pair.marketCap)) {
+    throw new Error(
+      `mapPairToSnapshot called on a pair with a non-finite marketCap (${pair.pairAddress}) — this pair should have been rejected by passesHardFilter first`
+    );
+  }
   return {
     priceUsd: parseFloat(pair.priceUsd),
     liquidityUsd: pair.liquidity.usd,
@@ -875,10 +903,12 @@ export function mapPairToSnapshot(pair: DexScreenerPair): TokenSnapshotInput {
     volume24hUsd: pair.volume.h24,
     buys1h: pair.txns.h1.buys,
     sells1h: pair.txns.h1.sells,
-    marketCapUsd: pair.marketCap,
+    marketCapUsd: pair.marketCap as number,
   };
 }
 ```
+
+The guard both satisfies TypeScript (narrows `pair.marketCap` from `number | undefined` before the `as number` assignment) and acts as a defensive backstop if this function is ever called out of the intended pipeline order — Task 8's cron route already wraps each token's processing in a try/catch, so a thrown error here is treated the same as any other per-token failure: skip and log, don't crash the tick.
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
@@ -886,7 +916,7 @@ export function mapPairToSnapshot(pair: DexScreenerPair): TokenSnapshotInput {
 npm test -- mapSnapshot.test
 ```
 
-Expected: PASS.
+Expected: PASS, both tests.
 
 - [ ] **Step 5: Commit**
 
@@ -904,7 +934,7 @@ git commit -m "feat: map DexScreener pairs to snapshot rows"
 - Test: `src/lib/scoring/score.test.ts`
 
 **Interfaces:**
-- Consumes: `DexScreenerPair` (Task 4)
+- Consumes: `DexScreenerPair` (Task 4) — `marketCap` is typed `number | undefined`, but same as Task 6: this function's contract is that it's only called on a pair that already passed Task 5's `passesHardFilter`, which guarantees `Number.isFinite(pair.marketCap)`. The implementation guards and asserts non-null rather than re-validating.
 - Produces: `scoreToken(input: { pair: DexScreenerPair; initialLiquidityUsd: number }): ScoreBreakdown`, matching the `ScoreBreakdown`/`ScoreFactors` shapes defined in Task 3 (`src/lib/db/tokens.ts`) exactly.
 
 This implements the v1 scoring model from the design spec, with one deliberate refinement: "volume acceleration" and "price strength" use DexScreener's own windowed fields (`volume.h1` vs. `volume.h6`, `priceChange.h1`) rather than diffing our own snapshot history, since those are available from a single fetch and don't depend on how much snapshot history we've accumulated for a brand-new token. "Liquidity growth" still compares against `initialLiquidityUsd` (captured once at first-seen, per Task 3), matching the spec exactly.
@@ -1015,6 +1045,11 @@ describe('scoreToken', () => {
     const sum = Object.values(result.factors).reduce((a, b) => a + b, 0);
     expect(result.total).toBe(sum);
   });
+
+  it('throws if marketCap is missing (should never happen post-filter, but guards the invariant)', () => {
+    const pair = makePair({ marketCap: undefined });
+    expect(() => scoreToken({ pair, initialLiquidityUsd: 50000 })).toThrow(/non-finite marketCap/);
+  });
 });
 ```
 
@@ -1043,6 +1078,13 @@ export interface ScoreInput {
 }
 
 export function scoreToken({ pair, initialLiquidityUsd }: ScoreInput): ScoreBreakdown {
+  if (!Number.isFinite(pair.marketCap)) {
+    throw new Error(
+      `scoreToken called on a pair with a non-finite marketCap (${pair.pairAddress}) — this pair should have been rejected by passesHardFilter first`
+    );
+  }
+  const marketCap = pair.marketCap as number;
+
   const avgHourlyVolume6h = pair.volume.h6 / 6;
   const volumeMomentum =
     clamp(
@@ -1064,7 +1106,7 @@ export function scoreToken({ pair, initialLiquidityUsd }: ScoreInput): ScoreBrea
   const buySellRatio =
     totalTxns1h > 0 ? (pair.txns.h1.buys / totalTxns1h - 0.5) * 2 * 15 : 0;
 
-  const marketCapBand = pair.marketCap >= 50_000 && pair.marketCap <= 5_000_000 ? 10 : -10;
+  const marketCapBand = marketCap >= 50_000 && marketCap <= 5_000_000 ? 10 : -10;
 
   const liquidityLevel = pair.liquidity.usd >= 100_000 ? 15 : pair.liquidity.usd < 20_000 ? -20 : 0;
 
@@ -1092,7 +1134,7 @@ export function scoreToken({ pair, initialLiquidityUsd }: ScoreInput): ScoreBrea
 npm test -- score.test
 ```
 
-Expected: PASS, all 10 tests.
+Expected: PASS, all 11 tests.
 
 - [ ] **Step 5: Commit**
 
