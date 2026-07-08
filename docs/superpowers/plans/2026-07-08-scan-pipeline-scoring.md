@@ -6,7 +6,7 @@
 
 **Architecture:** Single Next.js (App Router, TypeScript) app. Postgres via local Supabase (Docker) in dev, `pg` for direct queries. A protected `/api/cron/scan` route orchestrates: fetch DexScreener candidates → hard-filter → persist snapshot → score → persist score. DexScreener has no single "new pairs for a chain" endpoint, so discovery is two calls: `token-profiles/latest/v1` (candidates, all chains, filtered to `solana`) then `token-pairs/v1/solana/{tokenAddress}` per candidate (actual trading data) — both endpoints share DexScreener's 60 requests/minute limit, which is why the hard filter must run on the enrichment call's data as soon as it lands, and why the cron interval starts at 1 minute rather than tighter.
 
-**Tech Stack:** Next.js 15 (App Router) + TypeScript, `pg` for Postgres access, Supabase CLI for local Postgres in dev, Vitest for tests, DexScreener public API (no key required).
+**Tech Stack:** Next.js 16 (App Router) + TypeScript, `pg` for Postgres access, Supabase CLI for local Postgres in dev, Vitest for tests, DexScreener public API (no key required). (Task 1 scaffolded via `create-next-app@latest`, which resolved to Next.js 16.2.10 rather than the originally planned 15 — confirmed no impact on later tasks' App Router route handler conventions.)
 
 ## Global Constraints
 
