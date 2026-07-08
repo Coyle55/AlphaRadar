@@ -395,7 +395,7 @@ git commit -m "feat: add alerts DB access layer"
 **Interfaces:**
 - Consumes: `getPool`/`closePool` (`src/lib/db/pool.ts`), `upsertToken`/`insertSnapshot` (`src/lib/db/tokens.ts`) — both Plan 1, used to set up test fixtures.
 - Produces:
-  - `PriorSnapshot { liquidityUsd: number; priceUsd: number; capturedAt: string }`
+  - `PriorSnapshot { liquidityUsd: number; priceUsd: number; capturedAt: string }` — `captured_at` is a `timestamptz` column, and `pg` returns those as native `Date` objects, not strings (this bit Task 3's `triggeredAt` field the same way — call `.toISOString()` on it before assigning, don't pass the raw `Date` through).
   - `getPriorSnapshot(tokenId: string): Promise<PriorSnapshot | null>` — the second-most-recent snapshot for a token (i.e. the one before whatever was just inserted this tick), or `null` if fewer than two snapshots exist.
   - `getLocalHighPrice(tokenId: string): Promise<number | null>` — the maximum `price_usd` across all of a token's stored snapshots, or `null` if none exist.
 
@@ -553,7 +553,7 @@ export async function getPriorSnapshot(tokenId: string): Promise<PriorSnapshot |
   return {
     liquidityUsd: Number(row.liquidity_usd),
     priceUsd: Number(row.price_usd),
-    capturedAt: row.captured_at,
+    capturedAt: row.captured_at.toISOString(),
   };
 }
 
