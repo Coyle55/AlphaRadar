@@ -1,5 +1,6 @@
 import type { DexScreenerPair } from '../dexscreener/types';
 import type { ScoreBreakdown, ScoreFactors } from '../db/tokens';
+import { getEffectiveMarketCap } from '../scan/filter';
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -11,12 +12,13 @@ export interface ScoreInput {
 }
 
 export function scoreToken({ pair, initialLiquidityUsd }: ScoreInput): ScoreBreakdown {
-  if (!Number.isFinite(pair.marketCap)) {
+  const marketCap = getEffectiveMarketCap(pair);
+  if (!Number.isFinite(marketCap)) {
     throw new Error(
-      `scoreToken called on a pair with a non-finite marketCap (${pair.pairAddress}) — this pair should have been rejected by passesHardFilter first`
+      `scoreToken called on a pair with no usable marketCap or fdv (${pair.pairAddress}) — this pair should have been rejected by passesHardFilter first`
     );
   }
-  const marketCap = pair.marketCap as number;
+  const marketCapValue = marketCap as number;
 
   const avgHourlyVolume6h = pair.volume.h6 / 6;
   const volumeMomentum =
@@ -39,7 +41,7 @@ export function scoreToken({ pair, initialLiquidityUsd }: ScoreInput): ScoreBrea
   const buySellRatio =
     totalTxns1h > 0 ? (pair.txns.h1.buys / totalTxns1h - 0.5) * 2 * 15 : 0;
 
-  const marketCapBand = marketCap >= 50_000 && marketCap <= 5_000_000 ? 10 : -10;
+  const marketCapBand = marketCapValue >= 50_000 && marketCapValue <= 5_000_000 ? 10 : -10;
 
   const liquidityLevel = pair.liquidity.usd >= 100_000 ? 15 : pair.liquidity.usd < 20_000 ? -20 : 0;
 

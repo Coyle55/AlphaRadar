@@ -101,8 +101,14 @@ describe('scoreToken', () => {
     expect(result.total).toBe(sum);
   });
 
-  it('throws if marketCap is missing (should never happen post-filter, but guards the invariant)', () => {
-    const pair = makePair({ marketCap: undefined });
-    expect(() => scoreToken({ pair, initialLiquidityUsd: 50000 })).toThrow(/non-finite marketCap/);
+  it('throws if both marketCap and fdv are missing (should never happen post-filter, but guards the invariant)', () => {
+    const pair = makePair({ marketCap: undefined, fdv: undefined });
+    expect(() => scoreToken({ pair, initialLiquidityUsd: 50000 })).toThrow(/no usable marketCap or fdv/);
+  });
+
+  it('computes marketCapBand from fdv when marketCap is missing', () => {
+    const pair = makePair({ marketCap: undefined, fdv: 1_000_000 });
+    const result = scoreToken({ pair, initialLiquidityUsd: 50000 });
+    expect(result.factors.marketCapBand).toBe(10);
   });
 });

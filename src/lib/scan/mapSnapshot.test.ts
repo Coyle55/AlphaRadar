@@ -34,11 +34,11 @@ describe('mapPairToSnapshot', () => {
     });
   });
 
-  it('throws if marketCap is missing (should never happen post-filter, but guards the invariant)', () => {
+  it('falls back to fdv when marketCap is missing', () => {
     const pair: DexScreenerPair = {
       chainId: 'solana',
-      pairAddress: 'pair-2',
-      baseToken: { address: 'mint-2', name: 'Test', symbol: 'TST' },
+      pairAddress: 'pair-3',
+      baseToken: { address: 'mint-3', name: 'Test', symbol: 'TST' },
       priceUsd: '0.0015',
       priceChange: { m5: 1, h1: 5, h6: 10, h24: 20 },
       liquidity: { usd: 42000, base: 1000, quote: 1000 },
@@ -54,6 +54,29 @@ describe('mapPairToSnapshot', () => {
       pairCreatedAt: Date.now() - 30 * 60 * 1000,
     };
 
-    expect(() => mapPairToSnapshot(pair)).toThrow(/non-finite marketCap/);
+    expect(mapPairToSnapshot(pair).marketCapUsd).toBe(950000);
+  });
+
+  it('throws if both marketCap and fdv are missing (should never happen post-filter, but guards the invariant)', () => {
+    const pair: DexScreenerPair = {
+      chainId: 'solana',
+      pairAddress: 'pair-2',
+      baseToken: { address: 'mint-2', name: 'Test', symbol: 'TST' },
+      priceUsd: '0.0015',
+      priceChange: { m5: 1, h1: 5, h6: 10, h24: 20 },
+      liquidity: { usd: 42000, base: 1000, quote: 1000 },
+      volume: { h24: 200000, h6: 60000, h1: 15000, m5: 2000 },
+      txns: {
+        m5: { buys: 6, sells: 2 },
+        h1: { buys: 60, sells: 25 },
+        h6: { buys: 250, sells: 100 },
+        h24: { buys: 600, sells: 350 },
+      },
+      marketCap: undefined,
+      fdv: undefined,
+      pairCreatedAt: Date.now() - 30 * 60 * 1000,
+    };
+
+    expect(() => mapPairToSnapshot(pair)).toThrow(/no usable marketCap or fdv/);
   });
 });

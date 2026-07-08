@@ -53,13 +53,23 @@ describe('passesHardFilter', () => {
     expect(passesHardFilter(pair, now, { minLiquidityUsd: 10000, minVolume1hUsd: 0, minAgeMinutes: 0 })).toBe(true);
   });
 
-  it('rejects a pair with a missing marketCap', () => {
-    const pair = makePair({ marketCap: undefined });
+  it('rejects a pair with a missing marketCap and no fdv fallback', () => {
+    const pair = makePair({ marketCap: undefined, fdv: undefined });
     expect(passesHardFilter(pair, now)).toBe(false);
   });
 
-  it('rejects a pair with a non-finite marketCap', () => {
-    const pair = makePair({ marketCap: NaN });
+  it('rejects a pair with a non-finite marketCap and no fdv fallback', () => {
+    const pair = makePair({ marketCap: NaN, fdv: undefined });
     expect(passesHardFilter(pair, now)).toBe(false);
+  });
+
+  it('passes when marketCap is missing but fdv is present', () => {
+    const pair = makePair({ marketCap: undefined });
+    expect(passesHardFilter(pair, now)).toBe(true);
+  });
+
+  it('passes when marketCap is non-finite but fdv is present', () => {
+    const pair = makePair({ marketCap: NaN });
+    expect(passesHardFilter(pair, now)).toBe(true);
   });
 });
