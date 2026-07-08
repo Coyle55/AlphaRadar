@@ -40,4 +40,36 @@ describe('formatAlertMessage', () => {
     expect(formatAlertMessage('liquidity_danger', makePair())).toContain('Liquidity Danger');
     expect(formatAlertMessage('trend_break', makePair())).toContain('Trend Break');
   });
+
+  it('escapes Markdown special characters in token symbol and name', () => {
+    const message = formatAlertMessage(
+      'buy_watch',
+      makePair({
+        baseToken: {
+          address: 'mint-format-1',
+          symbol: 'DOGE_2.0',
+          name: 'Doge*Killer[Bot]',
+        },
+      })
+    );
+    expect(message).toContain('DOGE\\_2.0');
+    expect(message).toContain('Doge\\*Killer\\[Bot]');
+    expect(message).not.toContain('DOGE_2.0');
+    expect(message).not.toContain('Doge*Killer[');
+  });
+
+  it('escapes backticks in token name', () => {
+    const message = formatAlertMessage(
+      'buy_watch',
+      makePair({
+        baseToken: {
+          address: 'mint-format-1',
+          symbol: 'CODE`COIN',
+          name: 'Code`Executor',
+        },
+      })
+    );
+    expect(message).toContain('CODE\\`COIN');
+    expect(message).toContain('Code\\`Executor');
+  });
 });
