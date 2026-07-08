@@ -35,7 +35,7 @@ export interface DexScreenerPair {
     h6: { buys: number; sells: number };
     h24: { buys: number; sells: number };
   };
-  marketCap: number;
-  fdv: number;
+  marketCap?: number;
+  fdv?: number;
   pairCreatedAt: number;
 }
