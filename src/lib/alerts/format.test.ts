@@ -72,4 +72,9 @@ describe('formatAlertMessage', () => {
     expect(message).toContain('CODE\\`COIN');
     expect(message).toContain('Code\\`Executor');
   });
+
+  it('renders $0 liquidity without throwing when pair.liquidity is missing', () => {
+    const message = formatAlertMessage('buy_watch', makePair({ liquidity: undefined }));
+    expect(message).toContain('Liquidity: $0');
+  });
 });

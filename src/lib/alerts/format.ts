@@ -16,7 +16,7 @@ export function formatAlertMessage(alertType: AlertType, pair: DexScreenerPair):
   const label = ALERT_LABELS[alertType];
   const symbol = escapeMarkdown(pair.baseToken.symbol);
   const name = escapeMarkdown(pair.baseToken.name);
-  const liquidity = pair.liquidity.usd.toLocaleString('en-US');
+  const liquidity = (pair.liquidity?.usd ?? 0).toLocaleString('en-US');
   return [
     `*${label}*: ${symbol} (${name})`,
     `Price: $${pair.priceUsd}`,

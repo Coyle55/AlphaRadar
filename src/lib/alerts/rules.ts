@@ -32,7 +32,7 @@ function evaluatesBuyWatch(pair: DexScreenerPair): boolean {
   if (marketCap === undefined) return false;
   return (
     marketCap < BUY_WATCH_MAX_MARKET_CAP &&
-    pair.liquidity.usd >= BUY_WATCH_MIN_LIQUIDITY &&
+    (pair.liquidity?.usd ?? 0) >= BUY_WATCH_MIN_LIQUIDITY &&
     pair.volume.h1 >= BUY_WATCH_MIN_VOLUME_1H &&
     pair.priceChange.h1 > 0 &&
     pair.txns.h1.buys > pair.txns.h1.sells
@@ -44,7 +44,7 @@ function evaluatesVolumeSpike(score: ScoreBreakdown): boolean {
 }
 
 function evaluatesLiquidityDanger(pair: DexScreenerPair, prior: PriorSnapshot | null): boolean {
-  if (!prior || prior.liquidityUsd <= 0) return false;
+  if (!prior || prior.liquidityUsd <= 0 || !pair.liquidity) return false;
   const dropRatio = (prior.liquidityUsd - pair.liquidity.usd) / prior.liquidityUsd;
   return dropRatio >= LIQUIDITY_DANGER_DROP_RATIO;
 }

@@ -134,6 +134,34 @@ describe('evaluateDiscoveryAlerts', () => {
     expect(fired).not.toContain('trend_break');
   });
 
+  it('does not fire buy_watch when liquidity is missing, even if every other condition qualifies', () => {
+    const pair = makePair({
+      marketCap: 2_000_000,
+      liquidity: undefined,
+      volume: { h24: 500000, h6: 300000, h1: 300000, m5: 10000 },
+      priceChange: { m5: 0, h1: 5, h6: 0, h24: 0 },
+      txns: {
+        m5: { buys: 5, sells: 1 },
+        h1: { buys: 60, sells: 20 },
+        h6: { buys: 0, sells: 0 },
+        h24: { buys: 0, sells: 0 },
+      },
+    });
+    const fired = evaluateDiscoveryAlerts({ pair, score: makeScore(), priorSnapshot: null, localHighPrice: null });
+    expect(fired).not.toContain('buy_watch');
+  });
+
+  it('does not fire liquidity_danger when liquidity is missing, even with a valid prior snapshot', () => {
+    const pair = makePair({ liquidity: undefined });
+    const fired = evaluateDiscoveryAlerts({
+      pair,
+      score: makeScore(),
+      priorSnapshot: { liquidityUsd: 50000, priceUsd: 1.0, capturedAt: new Date().toISOString() },
+      localHighPrice: null,
+    });
+    expect(fired).not.toContain('liquidity_danger');
+  });
+
   it('can fire multiple alert types in the same evaluation', () => {
     const pair = makePair({
       marketCap: 2_000_000,

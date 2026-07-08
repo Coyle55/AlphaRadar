@@ -178,6 +178,53 @@ describe('POST /api/cron/scan', () => {
     expect(rows.rows[0].pair_address).toBe('pair-matching');
   });
 
+  it('skips a token whose only pair has no liquidity field, without throwing', async () => {
+    // Mirrors the real DexScreener API shape for very fresh pump.fun launches,
+    // which omit the `liquidity` key entirely rather than sending a partial object.
+    const noLiquidityPair = {
+      chainId: 'solana',
+      pairAddress: 'pair-no-liquidity',
+      baseToken: { address: 'mint-no-liquidity', name: 'No Liquidity Coin', symbol: 'NOLIQ' },
+      priceUsd: '0.002',
+      priceChange: { m5: 0, h1: 10, h6: 5, h24: 20 },
+      volume: { h24: 200000, h6: 30000, h1: 10000, m5: 1000 },
+      txns: {
+        m5: { buys: 5, sells: 2 },
+        h1: { buys: 60, sells: 20 },
+        h6: { buys: 200, sells: 100 },
+        h24: { buys: 500, sells: 300 },
+      },
+      marketCap: 1_000_000,
+      fdv: 1_000_000,
+      pairCreatedAt: Date.now() - 60 * 60 * 1000,
+    };
+
+    const mockFetch = vi.fn(async (url: string) => {
+      const telegram = telegramSuccessBranch(url);
+      if (telegram) return telegram;
+      if (url.includes('token-profiles')) {
+        return {
+          ok: true,
+          json: async () => [{ chainId: 'solana', tokenAddress: 'mint-no-liquidity' }],
+        };
+      }
+      if (url.includes('mint-no-liquidity')) {
+        return { ok: true, json: async () => [noLiquidityPair] };
+      }
+      throw new Error(`unexpected url ${url}`);
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    const response = await POST(makeRequest('Bearer test-secret'));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toEqual({ scored: 0, skipped: 1, total: 1, alertsFired: 0 });
+
+    const rows = await getPool().query('select * from tokens');
+    expect(rows.rows).toHaveLength(0);
+  });
+
   it('skips a token whose pair fetch throws, without failing the whole tick', async () => {
     const mockFetch = vi.fn(async (url: string) => {
       if (url.includes('token-profiles')) {

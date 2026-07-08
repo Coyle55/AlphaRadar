@@ -16,7 +16,9 @@ function selectPair(pairs: DexScreenerPair[], tokenAddress: string): DexScreener
   const matching = pairs.filter((p) => p.baseToken.address === tokenAddress);
   const candidates = matching.length > 0 ? matching : pairs;
   return candidates.reduce<DexScreenerPair | undefined>((best, p) => {
-    if (!best || p.liquidity.usd > best.liquidity.usd) return p;
+    const pLiquidity = p.liquidity?.usd ?? 0;
+    const bestLiquidity = best?.liquidity?.usd ?? 0;
+    if (!best || pLiquidity > bestLiquidity) return p;
     return best;
   }, undefined);
 }
@@ -87,7 +89,7 @@ export async function POST(request: NextRequest) {
         pairAddress: pair.pairAddress,
         symbol: pair.baseToken.symbol,
         name: pair.baseToken.name,
-        initialLiquidityUsd: pair.liquidity.usd,
+        initialLiquidityUsd: pair.liquidity!.usd, // guaranteed present: passesHardFilter already rejected pairs without it
       });
 
       const snapshot = mapPairToSnapshot(pair);
