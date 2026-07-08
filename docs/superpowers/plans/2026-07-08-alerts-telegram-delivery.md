@@ -353,7 +353,7 @@ export async function insertAlert(input: NewAlertInput): Promise<AlertRecord> {
     id: row.id,
     tokenId: row.token_id,
     alertType: row.alert_type,
-    triggeredAt: row.triggered_at,
+    triggeredAt: row.triggered_at.toISOString(),
     payload: row.payload,
     telegramSent: row.telegram_sent,
     telegramError: row.telegram_error,
