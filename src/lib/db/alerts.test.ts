@@ -98,6 +98,25 @@ describe('insertAlert and wasRecentlyAlerted', () => {
     const recent = await wasRecentlyAlerted(token.id, 'trend_break', 0);
     expect(recent).toBe(false);
   });
+
+  it('returns triggeredAt as an ISO string, not a Date object', async () => {
+    const token = await upsertToken({
+      mintAddress: 'mint-alert-5',
+      pairAddress: 'pair-alert-5',
+      symbol: 'ALRT5',
+      name: 'Alert Coin 5',
+      initialLiquidityUsd: 50000,
+    });
+
+    const alert = await insertAlert({
+      tokenId: token.id,
+      alertType: 'buy_watch',
+      payload: { score: fakeScore, pair: fakePair },
+    });
+
+    expect(typeof alert.triggeredAt).toBe('string');
+    expect(() => new Date(alert.triggeredAt).toISOString()).not.toThrow();
+  });
 });
 
 describe('markTelegramResult', () => {
