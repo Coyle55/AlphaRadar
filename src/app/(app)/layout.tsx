@@ -26,6 +26,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Link href="/positions" className="text-sm text-ink/60 hover:text-amber">
             Positions
           </Link>
+          <Link href="/alerts" className="text-sm text-ink/60 hover:text-amber">
+            Alerts
+          </Link>
         </nav>
         <div className="flex items-center gap-3">
           {lastScanTime && (
