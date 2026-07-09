@@ -8,13 +8,6 @@ function formatUsd(value: number): string {
   return `$${value.toFixed(value < 1 ? 6 : 2)}`;
 }
 
-function timeAgo(iso: string): string {
-  const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
-  if (minutes < 1) return "just now";
-  if (minutes === 1) return "1m ago";
-  return `${minutes}m ago`;
-}
-
 export default async function DiscoveryFeedPage() {
   const feed = await getDiscoveryFeed();
 
@@ -31,18 +24,10 @@ export default async function DiscoveryFeedPage() {
   const maxScore = Math.max(1, ...feed.map((item) => item.totalScore));
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
-      <div className="mb-4 flex items-center justify-between text-sm text-ink/50 sm:mb-6">
-        <div className="flex items-center gap-2">
-          <RadarSweep size={16} />
-          <span>Last scanned {timeAgo(feed[0].capturedAt)}</span>
-        </div>
-        <ScanTrigger variant="icon" />
-      </div>
-
-      <div className="flex flex-col gap-2 sm:hidden">
+    <div className="mx-auto w-full max-w-5xl py-6 sm:px-6 sm:py-8">
+      <div className="flex flex-col sm:hidden">
         {feed.map((item, index) => (
-          <div key={item.tokenId} className="border border-ink/10 p-3 font-mono text-sm">
+          <div key={item.tokenId} className="border-t border-ink/10 px-6 py-4 font-mono text-sm first:border-t-0">
             <div className="flex items-baseline gap-2">
               <span className="text-ink/40">{index + 1}</span>
               <span className="font-medium text-ink">{item.symbol}</span>

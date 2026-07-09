@@ -24,7 +24,7 @@ function RefreshIcon({ spinning }: { spinning: boolean }) {
   );
 }
 
-export function ScanTrigger({ variant }: { variant: "icon" | "button" }) {
+export function ScanTrigger({ variant }: { variant: "badge" | "button" }) {
   const router = useRouter();
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState<string | null>(null);
@@ -59,18 +59,20 @@ export function ScanTrigger({ variant }: { variant: "icon" | "button" }) {
 
   const disabled = status === "loading";
 
-  if (variant === "icon") {
+  if (variant === "badge") {
     return (
-      <div className="flex items-center gap-2">
+      <div className="relative flex items-center">
         <button
           onClick={handleClick}
           disabled={disabled}
           aria-label="Scan now"
-          className="text-ink/40 transition-colors hover:text-amber disabled:opacity-40"
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-signal-green/40 bg-panel text-signal-green transition-colors hover:border-signal-green disabled:opacity-40"
         >
           <RefreshIcon spinning={status === "loading"} />
         </button>
-        {message && <span className="text-xs text-ink/40">{message}</span>}
+        {message && (
+          <span className="absolute right-0 top-10 whitespace-nowrap font-mono text-xs text-ink/40">{message}</span>
+        )}
       </div>
     );
   }
