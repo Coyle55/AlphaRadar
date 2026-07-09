@@ -1,12 +1,8 @@
+import Link from "next/link";
 import { getDiscoveryFeed } from "@/lib/db/discoveryFeed";
 import { RadarSweep } from "@/components/RadarSweep";
 import { ScanTrigger } from "@/components/ScanTrigger";
-
-function formatUsd(value: number): string {
-  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
-  if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
-  return `$${value.toFixed(value < 1 ? 6 : 2)}`;
-}
+import { formatUsd } from "@/lib/format";
 
 export default async function DiscoveryFeedPage() {
   const feed = await getDiscoveryFeed();
@@ -27,7 +23,11 @@ export default async function DiscoveryFeedPage() {
     <div className="mx-auto w-full max-w-5xl py-6 sm:px-6 sm:py-8">
       <div className="flex flex-col sm:hidden">
         {feed.map((item, index) => (
-          <div key={item.tokenId} className="border-t border-ink/10 px-6 py-4 font-mono text-sm first:border-t-0">
+          <Link
+            key={item.tokenId}
+            href={`/token/${item.mintAddress}`}
+            className="block border-t border-ink/10 px-6 py-4 font-mono text-sm transition-colors first:border-t-0 hover:bg-ink/5"
+          >
             <div className="flex items-baseline gap-2">
               <span className="text-ink/40">{index + 1}</span>
               <span className="font-medium text-ink">{item.symbol}</span>
@@ -57,7 +57,7 @@ export default async function DiscoveryFeedPage() {
                 <div className="text-ink">{formatUsd(item.marketCapUsd)}</div>
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
@@ -79,8 +79,10 @@ export default async function DiscoveryFeedPage() {
               <tr key={item.tokenId} className="border-b border-ink/5">
                 <td className="py-3 pr-4 text-ink/40">{index + 1}</td>
                 <td className="py-3 pr-4">
-                  <div className="font-medium text-ink">{item.symbol}</div>
-                  <div className="text-xs text-ink/40">{item.name}</div>
+                  <Link href={`/token/${item.mintAddress}`} className="block hover:text-amber">
+                    <div className="font-medium text-ink">{item.symbol}</div>
+                    <div className="text-xs text-ink/40">{item.name}</div>
+                  </Link>
                 </td>
                 <td className="py-3 pr-4">
                   <div className="h-1.5 w-24 overflow-hidden rounded-full bg-panel">
