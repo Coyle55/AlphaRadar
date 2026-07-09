@@ -2,6 +2,7 @@ import { getPool } from './pool';
 
 export interface DiscoveryFeedItem {
   tokenId: string;
+  mintAddress: string;
   symbol: string;
   name: string;
   priceUsd: number;
@@ -19,7 +20,7 @@ export async function getDiscoveryFeed(): Promise<DiscoveryFeedItem[]> {
   const result = await getPool().query(
     `select * from (
        select distinct on (t.id)
-         t.id as token_id, t.symbol, t.name,
+         t.id as token_id, t.mint_address, t.symbol, t.name,
          s.price_usd, s.market_cap_usd, s.liquidity_usd, s.volume_1h_usd, s.captured_at,
          sc.total_score
        from tokens t
@@ -35,6 +36,7 @@ export async function getDiscoveryFeed(): Promise<DiscoveryFeedItem[]> {
 
   return result.rows.map((row) => ({
     tokenId: row.token_id,
+    mintAddress: row.mint_address,
     symbol: row.symbol,
     name: row.name,
     priceUsd: Number(row.price_usd),
