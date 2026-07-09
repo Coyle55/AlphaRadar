@@ -69,7 +69,7 @@ describe('insertPosition and getPositionById', () => {
 });
 
 describe('closePosition', () => {
-  it('sets closedAt', async () => {
+  it('sets closedAt, exitPrice, and exitMarketCap', async () => {
     const user = await createTestUser();
     const token = await upsertToken({
       mintAddress: 'mint-pos-3',
@@ -85,10 +85,12 @@ describe('closePosition', () => {
       entryMarketCap: 1_000_000,
     });
 
-    await closePosition(position.id);
+    await closePosition(position.id, 0.0015, 1_500_000);
 
     const fetched = await getPositionById(position.id);
     expect(fetched?.closedAt).not.toBeNull();
+    expect(fetched?.exitPrice).toBe(0.0015);
+    expect(fetched?.exitMarketCap).toBe(1_500_000);
   });
 });
 
@@ -122,7 +124,7 @@ describe('getOpenPositions', () => {
       entryPrice: 0.002,
       entryMarketCap: 2_000_000,
     });
-    await closePosition(closedPositionRecord.id);
+    await closePosition(closedPositionRecord.id, 0.003, 3_000_000);
 
     const open = await getOpenPositions();
 

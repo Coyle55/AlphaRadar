@@ -59,6 +59,23 @@ export async function upsertToken(input: {
   };
 }
 
+export async function getTokenById(id: string): Promise<TokenRecord | null> {
+  const result = await getPool().query(
+    `select id, mint_address, pair_address, symbol, name, initial_liquidity_usd from tokens where id = $1`,
+    [id]
+  );
+  if (result.rowCount === 0) return null;
+  const row = result.rows[0];
+  return {
+    id: row.id,
+    mintAddress: row.mint_address,
+    pairAddress: row.pair_address,
+    symbol: row.symbol,
+    name: row.name,
+    initialLiquidityUsd: Number(row.initial_liquidity_usd),
+  };
+}
+
 export async function insertSnapshot(tokenId: string, snapshot: TokenSnapshotInput): Promise<string> {
   const result = await getPool().query(
     `insert into token_snapshots
