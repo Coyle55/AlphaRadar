@@ -4,7 +4,15 @@ import { upsertToken } from './tokens';
 import { insertPosition } from './positions';
 import type { ScoreBreakdown } from './tokens';
 import type { DexScreenerPair } from '../dexscreener/types';
-import { wasRecentlyAlerted, insertAlert, markTelegramResult, ALERT_COOLDOWN_MINUTES, wasPositionRecentlyAlerted } from './alerts';
+import {
+  wasRecentlyAlerted,
+  insertAlert,
+  markTelegramResult,
+  ALERT_COOLDOWN_MINUTES,
+  wasPositionRecentlyAlerted,
+  getDiscoveryAlerts,
+  getPositionAlertsForUser,
+} from './alerts';
 import { createTestUser } from '../testing/testUser';
 
 const fakeScore: ScoreBreakdown = {
@@ -254,5 +262,146 @@ describe('wasPositionRecentlyAlerted', () => {
 
     const recent = await wasPositionRecentlyAlerted(positionB.id, 'take_profit', ALERT_COOLDOWN_MINUTES);
     expect(recent).toBe(false);
+  });
+});
+
+describe('getDiscoveryAlerts', () => {
+  it('returns only alerts with no user_id, most recent first', async () => {
+    const user = await createTestUser();
+    const discoveryToken = await upsertToken({
+      mintAddress: 'mint-feed-discovery-1',
+      pairAddress: 'pair-feed-discovery-1',
+      symbol: 'DISC1',
+      name: 'Discovery Coin 1',
+      initialLiquidityUsd: 50000,
+    });
+    const positionToken = await upsertToken({
+      mintAddress: 'mint-feed-position-1',
+      pairAddress: 'pair-feed-position-1',
+      symbol: 'POSF1',
+      name: 'Position Feed Coin 1',
+      initialLiquidityUsd: 50000,
+    });
+    const position = await insertPosition({
+      userId: user.id,
+      tokenId: positionToken.id,
+      entryPrice: 1,
+      entryMarketCap: 1_000_000,
+    });
+
+    await insertAlert({
+      tokenId: discoveryToken.id,
+      alertType: 'buy_watch',
+      payload: { score: fakeScore, pair: fakePair },
+    });
+    await insertAlert({
+      tokenId: positionToken.id,
+      alertType: 'take_profit',
+      payload: { score: fakeScore, pair: fakePair },
+      userId: user.id,
+      positionId: position.id,
+    });
+
+    const feed = await getDiscoveryAlerts();
+
+    expect(feed).toHaveLength(1);
+    expect(feed[0].symbol).toBe('DISC1');
+    expect(feed[0].alertType).toBe('buy_watch');
+  });
+
+  it('reads price and liquidity from the stored payload snapshot', async () => {
+    const token = await upsertToken({
+      mintAddress: 'mint-feed-discovery-2',
+      pairAddress: 'pair-feed-discovery-2',
+      symbol: 'DISC2',
+      name: 'Discovery Coin 2',
+      initialLiquidityUsd: 50000,
+    });
+
+    await insertAlert({
+      tokenId: token.id,
+      alertType: 'volume_spike',
+      payload: {
+        score: fakeScore,
+        pair: { ...fakePair, priceUsd: '0.0042', liquidity: { usd: 77777, base: 1, quote: 1 } },
+      },
+    });
+
+    const feed = await getDiscoveryAlerts();
+
+    expect(feed).toHaveLength(1);
+    expect(feed[0].priceUsd).toBe(0.0042);
+    expect(feed[0].liquidityUsd).toBe(77777);
+  });
+
+  it('caps results at 50', async () => {
+    const token = await upsertToken({
+      mintAddress: 'mint-feed-discovery-cap',
+      pairAddress: 'pair-feed-discovery-cap',
+      symbol: 'CAP',
+      name: 'Cap Coin',
+      initialLiquidityUsd: 50000,
+    });
+
+    for (let i = 0; i < 55; i++) {
+      await insertAlert({ tokenId: token.id, alertType: 'buy_watch', payload: { score: fakeScore, pair: fakePair } });
+    }
+
+    const feed = await getDiscoveryAlerts();
+
+    expect(feed).toHaveLength(50);
+  });
+});
+
+describe('getPositionAlertsForUser', () => {
+  it("returns only the requesting user's alerts, excluding discovery alerts and other users' alerts", async () => {
+    const user = await createTestUser();
+    const otherUser = await createTestUser();
+    const token = await upsertToken({
+      mintAddress: 'mint-feed-position-2',
+      pairAddress: 'pair-feed-position-2',
+      symbol: 'POSF2',
+      name: 'Position Feed Coin 2',
+      initialLiquidityUsd: 50000,
+    });
+    const position = await insertPosition({
+      userId: user.id,
+      tokenId: token.id,
+      entryPrice: 1,
+      entryMarketCap: 1_000_000,
+    });
+    const otherPosition = await insertPosition({
+      userId: otherUser.id,
+      tokenId: token.id,
+      entryPrice: 1,
+      entryMarketCap: 1_000_000,
+    });
+
+    await insertAlert({
+      tokenId: token.id,
+      alertType: 'exit_warning',
+      payload: { score: fakeScore, pair: fakePair },
+      userId: user.id,
+      positionId: position.id,
+    });
+    await insertAlert({
+      tokenId: token.id,
+      alertType: 'take_profit',
+      payload: { score: fakeScore, pair: fakePair },
+      userId: otherUser.id,
+      positionId: otherPosition.id,
+    });
+    await insertAlert({ tokenId: token.id, alertType: 'buy_watch', payload: { score: fakeScore, pair: fakePair } });
+
+    const feed = await getPositionAlertsForUser(user.id);
+
+    expect(feed).toHaveLength(1);
+    expect(feed[0].alertType).toBe('exit_warning');
+  });
+
+  it('returns an empty array for a user with no position alerts', async () => {
+    const user = await createTestUser();
+    const feed = await getPositionAlertsForUser(user.id);
+    expect(feed).toEqual([]);
   });
 });

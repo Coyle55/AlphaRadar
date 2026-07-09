@@ -93,3 +93,58 @@ export async function markTelegramResult(alertId: string, sent: boolean, error: 
     error,
   ]);
 }
+
+export interface AlertFeedItem {
+  id: string;
+  tokenId: string;
+  mintAddress: string;
+  symbol: string;
+  name: string;
+  alertType: AlertType;
+  triggeredAt: string;
+  priceUsd: number;
+  liquidityUsd: number;
+}
+
+const ALERT_FEED_LIMIT = 50;
+
+function mapAlertFeedRow(row: any): AlertFeedItem {
+  const payload = row.payload as AlertPayload;
+  return {
+    id: row.id,
+    tokenId: row.token_id,
+    mintAddress: row.mint_address,
+    symbol: row.symbol,
+    name: row.name,
+    alertType: row.alert_type,
+    triggeredAt: row.triggered_at.toISOString(),
+    priceUsd: parseFloat(payload.pair.priceUsd),
+    liquidityUsd: payload.pair.liquidity?.usd ?? 0,
+  };
+}
+
+export async function getDiscoveryAlerts(): Promise<AlertFeedItem[]> {
+  const result = await getPool().query(
+    `select a.id, a.token_id, t.mint_address, t.symbol, t.name, a.alert_type, a.triggered_at, a.payload
+     from alerts a
+     join tokens t on t.id = a.token_id
+     where a.user_id is null
+     order by a.triggered_at desc
+     limit $1`,
+    [ALERT_FEED_LIMIT]
+  );
+  return result.rows.map(mapAlertFeedRow);
+}
+
+export async function getPositionAlertsForUser(userId: string): Promise<AlertFeedItem[]> {
+  const result = await getPool().query(
+    `select a.id, a.token_id, t.mint_address, t.symbol, t.name, a.alert_type, a.triggered_at, a.payload
+     from alerts a
+     join tokens t on t.id = a.token_id
+     where a.user_id = $1
+     order by a.triggered_at desc
+     limit $2`,
+    [userId, ALERT_FEED_LIMIT]
+  );
+  return result.rows.map(mapAlertFeedRow);
+}
