@@ -1,4 +1,5 @@
 import { computeChartPolyline, type ChartPoint } from "@/lib/chart";
+import { formatUsd } from "@/lib/format";
 
 const CHART_WIDTH = 600;
 const CHART_HEIGHT = 120;
@@ -22,8 +23,8 @@ export function PriceChart({ history }: { history: ChartPoint[] }) {
     <div>
       <div className="mb-2 flex items-center justify-between text-xs text-ink/40">
         <span>Tracked since {trackedSince}</span>
-        <span>
-          {minPrice.toFixed(6)} – {maxPrice.toFixed(6)}
+        <span className="font-mono">
+          {formatUsd(minPrice)} – {formatUsd(maxPrice)}
         </span>
       </div>
       <svg
