@@ -19,8 +19,15 @@ export async function POST(request: NextRequest) {
   }
 
   const { mintAddress, entryPrice, amount } = body;
-  if (!mintAddress || typeof entryPrice !== 'number') {
-    return NextResponse.json({ error: 'mintAddress and entryPrice are required' }, { status: 400 });
+  if (!mintAddress || typeof entryPrice !== 'number' || !Number.isFinite(entryPrice) || entryPrice <= 0) {
+    return NextResponse.json(
+      { error: 'mintAddress is required and entryPrice must be a positive number' },
+      { status: 400 }
+    );
+  }
+
+  if (amount !== undefined && (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0)) {
+    return NextResponse.json({ error: 'amount must be a positive number if provided' }, { status: 400 });
   }
 
   let pairs;

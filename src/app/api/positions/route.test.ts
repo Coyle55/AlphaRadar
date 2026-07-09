@@ -50,6 +50,24 @@ describe('POST /api/positions', () => {
     expect(response.status).toBe(400);
   });
 
+  it('returns 400 when entryPrice is zero', async () => {
+    mockGetCurrentUser.mockResolvedValue({ id: 'user-1', email: 'a@b.com' });
+    const response = await POST(makeRequest({ mintAddress: 'mint-x', entryPrice: 0 }));
+    expect(response.status).toBe(400);
+  });
+
+  it('returns 400 when entryPrice is negative', async () => {
+    mockGetCurrentUser.mockResolvedValue({ id: 'user-1', email: 'a@b.com' });
+    const response = await POST(makeRequest({ mintAddress: 'mint-x', entryPrice: -5 }));
+    expect(response.status).toBe(400);
+  });
+
+  it('returns 400 when amount is not a positive number', async () => {
+    mockGetCurrentUser.mockResolvedValue({ id: 'user-1', email: 'a@b.com' });
+    const response = await POST(makeRequest({ mintAddress: 'mint-x', entryPrice: 1, amount: -10 }));
+    expect(response.status).toBe(400);
+  });
+
   it('creates a position from a live DexScreener lookup', async () => {
     const user = await createTestUser();
     mockGetCurrentUser.mockResolvedValue({ id: user.id, email: user.email });
