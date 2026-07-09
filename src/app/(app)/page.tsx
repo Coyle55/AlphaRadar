@@ -1,19 +1,7 @@
 import { getDiscoveryFeed } from "@/lib/db/discoveryFeed";
 import { RadarSweep } from "@/components/RadarSweep";
 import { ScanTrigger } from "@/components/ScanTrigger";
-
-function formatUsd(value: number): string {
-  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
-  if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
-  return `$${value.toFixed(value < 1 ? 6 : 2)}`;
-}
-
-function timeAgo(iso: string): string {
-  const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
-  if (minutes < 1) return "just now";
-  if (minutes === 1) return "1m ago";
-  return `${minutes}m ago`;
-}
+import { formatUsd, timeAgo } from "@/lib/format";
 
 export default async function DiscoveryFeedPage() {
   const feed = await getDiscoveryFeed();

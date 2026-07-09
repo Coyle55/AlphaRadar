@@ -6,6 +6,10 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
+// Sum of each factor's best-case contribution: 20 + 15 + 15 + 15 + 10 + 15 + 0.
+// wickRejection's only non-negative value is 0 — it never adds to the score.
+export const MAX_POSSIBLE_SCORE = 90;
+
 export interface ScoreInput {
   pair: DexScreenerPair;
   initialLiquidityUsd: number;
