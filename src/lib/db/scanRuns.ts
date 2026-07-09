@@ -18,3 +18,9 @@ export async function secondsSinceLastScanRun(): Promise<number | null> {
   if (result.rowCount === 0) return null;
   return Number(result.rows[0].seconds_since);
 }
+
+export async function getLastScanTime(): Promise<string | null> {
+  const result = await getPool().query(`select started_at from scan_runs order by started_at desc limit 1`);
+  if (result.rowCount === 0) return null;
+  return result.rows[0].started_at.toISOString();
+}
