@@ -106,3 +106,5 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ processed, skipped, total: positions.length, alertsFired });
 }
+
+export { POST as GET };

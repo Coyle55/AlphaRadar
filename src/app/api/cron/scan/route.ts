@@ -23,3 +23,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'upstream fetch failed' }, { status: 502 });
   }
 }
+
+export { POST as GET };
