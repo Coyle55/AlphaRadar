@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchLatestTokenProfiles, fetchTokenPairs } from '@/lib/dexscreener/client';
 import type { DexScreenerPair } from '@/lib/dexscreener/types';
-import { passesHardFilter } from '@/lib/scan/filter';
+import { passesHardFilter, selectPair } from '@/lib/scan/filter';
 import { mapPairToSnapshot } from '@/lib/scan/mapSnapshot';
 import { scoreToken } from '@/lib/scoring/score';
 import { upsertToken, insertSnapshot, insertScore } from '@/lib/db/tokens';
@@ -11,17 +11,6 @@ import { evaluateDiscoveryAlerts } from '@/lib/alerts/rules';
 import { wasRecentlyAlerted, insertAlert, markTelegramResult, ALERT_COOLDOWN_MINUTES } from '@/lib/db/alerts';
 import { formatAlertMessage } from '@/lib/alerts/format';
 import { sendTelegramMessage } from '@/lib/telegram/client';
-
-function selectPair(pairs: DexScreenerPair[], tokenAddress: string): DexScreenerPair | undefined {
-  const matching = pairs.filter((p) => p.baseToken.address === tokenAddress);
-  const candidates = matching.length > 0 ? matching : pairs;
-  return candidates.reduce<DexScreenerPair | undefined>((best, p) => {
-    const pLiquidity = p.liquidity?.usd ?? 0;
-    const bestLiquidity = best?.liquidity?.usd ?? 0;
-    if (!best || pLiquidity > bestLiquidity) return p;
-    return best;
-  }, undefined);
-}
 
 async function evaluateAndDeliverAlerts(tokenId: string, pair: DexScreenerPair, score: ScoreBreakdown): Promise<number> {
   const [priorSnapshot, localHighPrice] = await Promise.all([

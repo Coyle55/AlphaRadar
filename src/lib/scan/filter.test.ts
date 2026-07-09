@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { passesHardFilter, DEFAULT_FILTER_THRESHOLDS } from './filter';
+import { passesHardFilter, DEFAULT_FILTER_THRESHOLDS, selectPair } from './filter';
 import type { DexScreenerPair } from '../dexscreener/types';
 
 function makePair(overrides: Partial<DexScreenerPair> = {}): DexScreenerPair {
@@ -76,5 +76,27 @@ describe('passesHardFilter', () => {
   it('rejects a pair with a missing liquidity object', () => {
     const pair = makePair({ liquidity: undefined });
     expect(passesHardFilter(pair, now)).toBe(false);
+  });
+});
+
+describe('selectPair', () => {
+  it('prefers the pair matching the token address, tie-broken by highest liquidity', () => {
+    const wrongTokenPair = makePair({
+      baseToken: { address: 'mint-other', name: 'Other', symbol: 'OTHR' },
+      liquidity: { usd: 20000, base: 1, quote: 1 },
+    });
+    const matchingPair = makePair({
+      pairAddress: 'pair-matching',
+      baseToken: { address: 'mint-target', name: 'Target', symbol: 'TGT' },
+      liquidity: { usd: 5000, base: 1, quote: 1 },
+    });
+
+    const selected = selectPair([wrongTokenPair, matchingPair], 'mint-target');
+
+    expect(selected?.pairAddress).toBe('pair-matching');
+  });
+
+  it('returns undefined for an empty array', () => {
+    expect(selectPair([], 'mint-target')).toBeUndefined();
   });
 });
