@@ -139,7 +139,7 @@ describe('POST /api/cron/positions', () => {
       entryPrice: 0.001,
       entryMarketCap: 500000,
     });
-    await closePosition(position.id);
+    await closePosition(position.id, 0.0005, 250000);
 
     const mockFetch = vi.fn(async () => {
       throw new Error('should not be called for a closed position');
