@@ -84,6 +84,8 @@ describe('getDiscoveryFeed', () => {
     expect(feed).toHaveLength(2);
     expect(feed[0].symbol).toBe('HIGH');
     expect(feed[1].symbol).toBe('LOW');
+    expect(feed[0].mintAddress).toBe('mint-feed-high');
+    expect(feed[1].mintAddress).toBe('mint-feed-low');
   });
 
   it('excludes tokens scored outside the recency window', async () => {
