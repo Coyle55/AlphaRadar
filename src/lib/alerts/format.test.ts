@@ -77,4 +77,9 @@ describe('formatAlertMessage', () => {
     const message = formatAlertMessage('buy_watch', makePair({ liquidity: undefined }));
     expect(message).toContain('Liquidity: $0');
   });
+
+  it('has labels for all alert types including position alert types', () => {
+    expect(formatAlertMessage('take_profit', makePair())).toContain('Take Profit');
+    expect(formatAlertMessage('exit_warning', makePair())).toContain('Exit Warning');
+  });
 });

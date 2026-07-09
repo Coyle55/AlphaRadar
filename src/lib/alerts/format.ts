@@ -1,14 +1,16 @@
 import type { AlertType } from '../db/alerts';
 import type { DexScreenerPair } from '../dexscreener/types';
 
-const ALERT_LABELS: Record<AlertType, string> = {
+export const ALERT_LABELS: Record<AlertType, string> = {
   buy_watch: 'Buy Watch',
   volume_spike: 'Volume Spike',
   liquidity_danger: 'Liquidity Danger',
   trend_break: 'Trend Break',
+  take_profit: 'Take Profit',
+  exit_warning: 'Exit Warning',
 };
 
-function escapeMarkdown(text: string): string {
+export function escapeMarkdown(text: string): string {
   return text.replace(/[_*`[]/g, '\\$&');
 }
 

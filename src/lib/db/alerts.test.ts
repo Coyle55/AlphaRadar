@@ -1,9 +1,11 @@
 import { beforeEach, afterAll, describe, expect, it } from 'vitest';
 import { getPool, closePool } from './pool';
 import { upsertToken } from './tokens';
+import { insertPosition } from './positions';
 import type { ScoreBreakdown } from './tokens';
 import type { DexScreenerPair } from '../dexscreener/types';
-import { wasRecentlyAlerted, insertAlert, markTelegramResult, ALERT_COOLDOWN_MINUTES } from './alerts';
+import { wasRecentlyAlerted, insertAlert, markTelegramResult, ALERT_COOLDOWN_MINUTES, wasPositionRecentlyAlerted } from './alerts';
+import { createTestUser } from '../testing/testUser';
 
 const fakeScore: ScoreBreakdown = {
   total: 10,
@@ -38,7 +40,7 @@ const fakePair: DexScreenerPair = {
 };
 
 beforeEach(async () => {
-  await getPool().query('truncate table alerts, token_scores, token_snapshots, tokens cascade');
+  await getPool().query('truncate table alerts, positions, token_scores, token_snapshots, tokens cascade');
 });
 
 afterAll(async () => {
@@ -139,5 +141,118 @@ describe('markTelegramResult', () => {
     const result = await getPool().query('select telegram_sent, telegram_error from alerts where id = $1', [alert.id]);
     expect(result.rows[0].telegram_sent).toBe(false);
     expect(result.rows[0].telegram_error).toBe('Telegram sendMessage failed: 500 boom');
+  });
+});
+
+describe('insertAlert with userId and positionId', () => {
+  it('stores and returns userId and positionId when provided', async () => {
+    const user = await createTestUser();
+    const token = await upsertToken({
+      mintAddress: 'mint-alert-pos-1',
+      pairAddress: 'pair-alert-pos-1',
+      symbol: 'ALRTP1',
+      name: 'Alert Position Coin 1',
+      initialLiquidityUsd: 50000,
+    });
+    const position = await insertPosition({
+      userId: user.id,
+      tokenId: token.id,
+      entryPrice: 1,
+      entryMarketCap: 1_000_000,
+    });
+
+    const alert = await insertAlert({
+      tokenId: token.id,
+      alertType: 'take_profit',
+      payload: { score: fakeScore, pair: fakePair },
+      userId: user.id,
+      positionId: position.id,
+    });
+
+    expect(alert.userId).toBe(user.id);
+    expect(alert.positionId).toBe(position.id);
+  });
+
+  it('leaves userId and positionId null when omitted (discovery alerts)', async () => {
+    const token = await upsertToken({
+      mintAddress: 'mint-alert-pos-2',
+      pairAddress: 'pair-alert-pos-2',
+      symbol: 'ALRTP2',
+      name: 'Alert Position Coin 2',
+      initialLiquidityUsd: 50000,
+    });
+
+    const alert = await insertAlert({
+      tokenId: token.id,
+      alertType: 'buy_watch',
+      payload: { score: fakeScore, pair: fakePair },
+    });
+
+    expect(alert.userId).toBeNull();
+    expect(alert.positionId).toBeNull();
+  });
+});
+
+describe('wasPositionRecentlyAlerted', () => {
+  it('finds an alert within the cooldown window for the same position and type', async () => {
+    const user = await createTestUser();
+    const token = await upsertToken({
+      mintAddress: 'mint-alert-pos-3',
+      pairAddress: 'pair-alert-pos-3',
+      symbol: 'ALRTP3',
+      name: 'Alert Position Coin 3',
+      initialLiquidityUsd: 50000,
+    });
+    const position = await insertPosition({
+      userId: user.id,
+      tokenId: token.id,
+      entryPrice: 1,
+      entryMarketCap: 1_000_000,
+    });
+
+    await insertAlert({
+      tokenId: token.id,
+      alertType: 'exit_warning',
+      payload: { score: fakeScore, pair: fakePair },
+      userId: user.id,
+      positionId: position.id,
+    });
+
+    const recent = await wasPositionRecentlyAlerted(position.id, 'exit_warning', ALERT_COOLDOWN_MINUTES);
+    expect(recent).toBe(true);
+  });
+
+  it('does not find a cooldown hit for a different position on the same token', async () => {
+    const user = await createTestUser();
+    const token = await upsertToken({
+      mintAddress: 'mint-alert-pos-4',
+      pairAddress: 'pair-alert-pos-4',
+      symbol: 'ALRTP4',
+      name: 'Alert Position Coin 4',
+      initialLiquidityUsd: 50000,
+    });
+    const positionA = await insertPosition({
+      userId: user.id,
+      tokenId: token.id,
+      entryPrice: 1,
+      entryMarketCap: 1_000_000,
+    });
+    const positionB = await insertPosition({
+      userId: user.id,
+      tokenId: token.id,
+      entryPrice: 2,
+      entryMarketCap: 2_000_000,
+    });
+
+    await insertAlert({
+      tokenId: token.id,
+      alertType: 'take_profit',
+      payload: { score: fakeScore, pair: fakePair },
+      userId: user.id,
+      positionId: positionA.id,
+    });
+
+    const recent = await wasPositionRecentlyAlerted(positionB.id, 'take_profit', ALERT_COOLDOWN_MINUTES);
+    expect(recent).toBe(false);
   });
 });

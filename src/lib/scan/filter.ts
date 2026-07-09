@@ -31,3 +31,14 @@ export function passesHardFilter(
   if (pair.volume.h1 < thresholds.minVolume1hUsd) return false;
   return true;
 }
+
+export function selectPair(pairs: DexScreenerPair[], tokenAddress: string): DexScreenerPair | undefined {
+  const matching = pairs.filter((p) => p.baseToken.address === tokenAddress);
+  const candidates = matching.length > 0 ? matching : pairs;
+  return candidates.reduce<DexScreenerPair | undefined>((best, p) => {
+    const pLiquidity = p.liquidity?.usd ?? 0;
+    const bestLiquidity = best?.liquidity?.usd ?? 0;
+    if (!best || pLiquidity > bestLiquidity) return p;
+    return best;
+  }, undefined);
+}
