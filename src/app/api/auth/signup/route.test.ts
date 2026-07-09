@@ -33,15 +33,31 @@ describe('POST /api/auth/signup', () => {
     expect(response.status).toBe(400);
   });
 
-  it('creates a user and returns 201 on success', async () => {
-    mockSignUp.mockResolvedValue({ data: { user: { id: 'user-123' } }, error: null });
+  it('creates a user and returns 201 with sessionEstablished true when a session is issued immediately', async () => {
+    mockSignUp.mockResolvedValue({
+      data: { user: { id: 'user-123' }, session: { access_token: 'fake-token' } },
+      error: null,
+    });
 
     const response = await POST(makeRequest({ email: 'a@b.com', password: 'hunter22' }));
     const body = await response.json();
 
     expect(response.status).toBe(201);
-    expect(body).toEqual({ userId: 'user-123' });
+    expect(body).toEqual({ userId: 'user-123', sessionEstablished: true });
     expect(mockSignUp).toHaveBeenCalledWith({ email: 'a@b.com', password: 'hunter22' });
+  });
+
+  it('returns 201 with sessionEstablished false when email confirmation is pending', async () => {
+    mockSignUp.mockResolvedValue({
+      data: { user: { id: 'user-456' }, session: null },
+      error: null,
+    });
+
+    const response = await POST(makeRequest({ email: 'a@b.com', password: 'hunter22' }));
+    const body = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(body).toEqual({ userId: 'user-456', sessionEstablished: false });
   });
 
   it('returns 400 with the Supabase error message on failure', async () => {

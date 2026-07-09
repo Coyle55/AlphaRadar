@@ -11,6 +11,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmationPending, setConfirmationPending] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -30,8 +31,33 @@ export default function SignupPage() {
       return;
     }
 
+    const body: { sessionEstablished: boolean } = await response.json();
+    if (!body.sessionEstablished) {
+      setSubmitting(false);
+      setConfirmationPending(true);
+      return;
+    }
+
     router.push("/");
     router.refresh();
+  }
+
+  if (confirmationPending) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 text-center">
+        <RadarSweep size={96} />
+        <div className="w-full max-w-sm">
+          <h1 className="mb-2 font-mono text-2xl tracking-wide text-amber">Check your email</h1>
+          <p className="text-sm text-ink/70">
+            We sent a confirmation link to your email address. Click it, then{" "}
+            <Link href="/login" className="text-amber hover:underline">
+              log in
+            </Link>
+            .
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
