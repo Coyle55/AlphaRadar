@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { formatUsd } from "@/lib/format";
+import { formatUsd, timeAgo } from "@/lib/format";
 
 export interface OpenPositionRowData {
   id: string;
@@ -66,7 +66,12 @@ export function OpenPositionRow({ position }: { position: OpenPositionRowData })
         {position.currentPriceUsd === null ? (
           <span className="text-ink/40">—</span>
         ) : (
-          formatUsd(position.currentPriceUsd)
+          <>
+            <div>{formatUsd(position.currentPriceUsd)}</div>
+            {position.currentPriceCapturedAt && (
+              <div className="text-xs text-ink/40">last scanned {timeAgo(position.currentPriceCapturedAt)}</div>
+            )}
+          </>
         )}
       </td>
       <td className="py-3 pr-4 text-right">
