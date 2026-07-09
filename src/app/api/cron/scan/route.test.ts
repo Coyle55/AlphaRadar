@@ -12,7 +12,7 @@ beforeEach(async () => {
   process.env.CRON_SECRET = 'test-secret';
   process.env.TELEGRAM_BOT_TOKEN = 'test-telegram-token';
   process.env.TELEGRAM_CHAT_ID = 'test-chat-id';
-  await getPool().query('truncate table alerts, token_scores, token_snapshots, tokens cascade');
+  await getPool().query('truncate table alerts, token_scores, token_snapshots, tokens, scan_runs cascade');
 });
 
 afterEach(() => {
