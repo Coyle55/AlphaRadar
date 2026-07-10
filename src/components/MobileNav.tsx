@@ -41,9 +41,9 @@ export function MobileNav() {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Open navigation menu"
-        className="flex h-8 w-8 items-center justify-center text-ink/60 hover:text-amber"
+        className="flex h-8 w-8 items-center justify-center rounded-full border border-ink/20 bg-panel text-ink/60 transition-colors hover:border-amber hover:text-amber"
       >
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
           <path strokeLinecap="round" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
