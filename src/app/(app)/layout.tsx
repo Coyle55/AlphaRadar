@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { getLastScanTime } from "@/lib/db/scanRuns";
 import { timeAgo } from "@/lib/format";
@@ -20,7 +21,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <header className="flex items-center justify-between border-b border-ink/10 px-4 py-4 sm:px-6">
         <div className="flex items-center gap-4 sm:gap-6">
           <span className="font-mono text-lg tracking-wide text-amber">ALPHARADAR</span>
-          <MobileNav />
+          <nav className="hidden items-center gap-6 sm:flex">
+            <Link href="/" className="text-sm text-ink/60 hover:text-amber">
+              Discovery
+            </Link>
+            <Link href="/positions" className="text-sm text-ink/60 hover:text-amber">
+              Positions
+            </Link>
+            <Link href="/alerts" className="text-sm text-ink/60 hover:text-amber">
+              Alerts
+            </Link>
+          </nav>
         </div>
         <div className="flex items-center gap-3">
           {lastScanTime && (
@@ -30,6 +41,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </div>
           )}
           <ScanTrigger variant="badge" />
+          <MobileNav />
           <AccountMenu email={user.email} />
         </div>
       </header>

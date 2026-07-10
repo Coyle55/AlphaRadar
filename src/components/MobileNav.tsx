@@ -35,47 +35,37 @@ export function MobileNav() {
   }, [open]);
 
   return (
-    <>
-      <nav className="hidden items-center gap-6 sm:flex">
-        {NAV_LINKS.map((link) => (
-          <Link key={link.href} href={link.href} className="text-sm text-ink/60 hover:text-amber">
-            {link.label}
-          </Link>
-        ))}
-      </nav>
+    <div ref={menuRef} className="relative sm:hidden">
+      <button
+        onClick={() => setOpen((value) => !value)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="Open navigation menu"
+        className="flex h-8 w-8 items-center justify-center text-ink/60 hover:text-amber"
+      >
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
 
-      <div ref={menuRef} className="relative sm:hidden">
-        <button
-          onClick={() => setOpen((value) => !value)}
-          aria-haspopup="menu"
-          aria-expanded={open}
-          aria-label="Open navigation menu"
-          className="flex h-8 w-8 items-center justify-center text-ink/60 hover:text-amber"
+      {open && (
+        <div
+          role="menu"
+          className="animate-menu-in absolute right-0 top-10 z-10 w-40 origin-top-right rounded-none border border-ink/10 bg-panel font-mono text-sm shadow-lg"
         >
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-
-        {open && (
-          <div
-            role="menu"
-            className="animate-menu-in absolute left-0 top-10 z-10 w-40 origin-top-left rounded-none border border-ink/10 bg-panel font-mono text-sm shadow-lg"
-          >
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                role="menuitem"
-                onClick={() => setOpen(false)}
-                className="block px-3 py-2 text-ink/70 hover:bg-ink/5 hover:text-amber"
-              >
-                {link.label}
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-    </>
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="block px-3 py-2 text-ink/70 hover:bg-ink/5 hover:text-amber"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
