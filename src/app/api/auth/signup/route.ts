@@ -28,5 +28,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  return NextResponse.json({ userId: data.user?.id ?? null }, { status: 201 });
+  return NextResponse.json(
+    { userId: data.user?.id ?? null, sessionEstablished: data.session !== null },
+    { status: 201 }
+  );
 }

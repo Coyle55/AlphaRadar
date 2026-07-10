@@ -2,7 +2,7 @@
 import { beforeEach, afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { getPool, closePool } from '@/lib/db/pool';
-import { POST } from './route';
+import { GET, POST } from './route';
 
 const ORIGINAL_CRON_SECRET = process.env.CRON_SECRET;
 const ORIGINAL_TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -379,5 +379,12 @@ describe('POST /api/cron/scan', () => {
     expect(alerts.rows).toHaveLength(1);
     expect(alerts.rows[0].telegram_sent).toBe(false);
     expect(alerts.rows[0].telegram_error).toContain('Telegram sendMessage failed');
+  });
+});
+
+describe('GET /api/cron/scan', () => {
+  it('rejects requests without the correct bearer token, same as POST', async () => {
+    const response = await GET(makeRequest('Bearer wrong'));
+    expect(response.status).toBe(401);
   });
 });

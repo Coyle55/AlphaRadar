@@ -4,7 +4,7 @@ import { getPool, closePool } from '@/lib/db/pool';
 import { upsertToken } from '@/lib/db/tokens';
 import { closePosition, insertPosition } from '@/lib/db/positions';
 import { createTestUser } from '@/lib/testing/testUser';
-import { POST } from './route';
+import { GET, POST } from './route';
 
 const ORIGINAL_CRON_SECRET = process.env.CRON_SECRET;
 const ORIGINAL_TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -179,5 +179,12 @@ describe('POST /api/cron/positions', () => {
 
     expect(response.status).toBe(200);
     expect(body).toEqual({ processed: 0, skipped: 1, total: 1, alertsFired: 0 });
+  });
+});
+
+describe('GET /api/cron/positions', () => {
+  it('rejects requests without the correct bearer token, same as POST', async () => {
+    const response = await GET(makeRequest('Bearer wrong'));
+    expect(response.status).toBe(401);
   });
 });
