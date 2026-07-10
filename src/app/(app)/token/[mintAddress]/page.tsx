@@ -54,8 +54,14 @@ export default async function TokenDetailPage({
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">
-      <Link href="/" className="mb-4 inline-block text-sm text-ink/50 hover:text-amber">
-        ‹ Discovery
+      <Link
+        href="/"
+        className="mb-6 inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-wide text-ink/50 transition-colors hover:text-amber"
+      >
+        <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M10 3 5 8l5 5" />
+        </svg>
+        Discovery
       </Link>
 
       <section className="mb-8 flex flex-wrap items-start justify-between gap-6 border-b border-ink/10 pb-6">
