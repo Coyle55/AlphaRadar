@@ -14,13 +14,29 @@ function alertColorClass(alertType: AlertType): string {
 function AlertRowContent({ alert }: { alert: AlertFeedItem }) {
   return (
     <>
-      <span className={`w-32 shrink-0 ${alertColorClass(alert.alertType)}`}>{ALERT_LABELS[alert.alertType]}</span>
-      <span className="flex-1 truncate text-ink">
-        {alert.symbol} <span className="text-ink/40">{alert.name}</span>
-      </span>
-      <span className="shrink-0 text-ink/70">{formatUsd(alert.priceUsd)}</span>
-      <span className="shrink-0 text-ink/70">{formatUsd(alert.liquidityUsd)}</span>
-      <span className="w-20 shrink-0 text-right text-ink/40">{timeAgo(alert.triggeredAt)}</span>
+      <div className="flex w-full flex-col gap-1 sm:hidden">
+        <div className="flex items-center justify-between gap-2">
+          <span className={alertColorClass(alert.alertType)}>{ALERT_LABELS[alert.alertType]}</span>
+          <span className="text-ink/40">{timeAgo(alert.triggeredAt)}</span>
+        </div>
+        <div className="truncate text-ink">
+          {alert.symbol} <span className="text-ink/40">{alert.name}</span>
+        </div>
+        <div className="flex items-center gap-4 text-ink/70">
+          <span>{formatUsd(alert.priceUsd)}</span>
+          <span>{formatUsd(alert.liquidityUsd)}</span>
+        </div>
+      </div>
+
+      <div className="hidden w-full items-center gap-4 sm:flex">
+        <span className={`w-32 shrink-0 ${alertColorClass(alert.alertType)}`}>{ALERT_LABELS[alert.alertType]}</span>
+        <span className="flex-1 truncate text-ink">
+          {alert.symbol} <span className="text-ink/40">{alert.name}</span>
+        </span>
+        <span className="shrink-0 text-ink/70">{formatUsd(alert.priceUsd)}</span>
+        <span className="shrink-0 text-ink/70">{formatUsd(alert.liquidityUsd)}</span>
+        <span className="w-20 shrink-0 text-right text-ink/40">{timeAgo(alert.triggeredAt)}</span>
+      </div>
     </>
   );
 }
@@ -48,7 +64,7 @@ export default async function AlertsPage() {
               <Link
                 key={alert.id}
                 href={`/token/${alert.mintAddress}`}
-                className="flex items-center justify-between gap-4 border-t border-ink/10 py-3 first:border-t-0 hover:bg-ink/5"
+                className="block border-t border-ink/10 py-3 first:border-t-0 hover:bg-ink/5"
               >
                 <AlertRowContent alert={alert} />
               </Link>
@@ -64,7 +80,7 @@ export default async function AlertsPage() {
         ) : (
           <div className="flex flex-col font-mono text-sm">
             {positionAlerts.map((alert) => (
-              <div key={alert.id} className="flex items-center justify-between gap-4 border-t border-ink/10 py-3 first:border-t-0">
+              <div key={alert.id} className="border-t border-ink/10 py-3 first:border-t-0">
                 <AlertRowContent alert={alert} />
               </div>
             ))}

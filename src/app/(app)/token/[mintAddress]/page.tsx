@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { getTokenDetail } from "@/lib/db/tokenDetail";
 import { computeThesis } from "@/lib/scoring/thesis";
 import { MAX_POSSIBLE_SCORE } from "@/lib/scoring/score";
@@ -53,6 +54,10 @@ export default async function TokenDetailPage({
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">
+      <Link href="/" className="mb-4 inline-block text-sm text-ink/50 hover:text-amber">
+        ‹ Discovery
+      </Link>
+
       <section className="mb-8 flex flex-wrap items-start justify-between gap-6 border-b border-ink/10 pb-6">
         <div>
           <div className="font-mono text-2xl text-ink">{detail.symbol}</div>
