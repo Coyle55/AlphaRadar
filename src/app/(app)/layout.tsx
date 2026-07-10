@@ -6,7 +6,6 @@ import { timeAgo } from "@/lib/format";
 import { AccountMenu } from "@/components/AccountMenu";
 import { ScanTrigger } from "@/components/ScanTrigger";
 import { RadarSweep } from "@/components/RadarSweep";
-import { MobileNav } from "@/components/MobileNav";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -41,7 +40,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </div>
           )}
           <ScanTrigger variant="badge" />
-          <MobileNav />
           <AccountMenu email={user.email} />
         </div>
       </header>

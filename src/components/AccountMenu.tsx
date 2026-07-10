@@ -2,6 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+const NAV_LINKS = [
+  { href: "/", label: "Discovery" },
+  { href: "/positions", label: "Positions" },
+  { href: "/alerts", label: "Alerts" },
+];
 
 export function AccountMenu({ email }: { email: string | null }) {
   const [open, setOpen] = useState(false);
@@ -52,6 +59,19 @@ export function AccountMenu({ email }: { email: string | null }) {
           className="animate-menu-in absolute right-0 top-10 z-10 w-56 origin-top-right rounded-none border border-ink/10 bg-panel font-mono text-sm shadow-lg"
         >
           <div className="truncate border-b border-ink/10 px-3 py-2 text-xs text-ink/50">{email ?? "Unknown account"}</div>
+          <div className="border-b border-ink/10 sm:hidden">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className="block px-3 py-2 text-ink/70 hover:bg-ink/5 hover:text-amber"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
           <button
             role="menuitem"
             onClick={handleLogout}
